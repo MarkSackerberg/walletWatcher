@@ -1,0 +1,38 @@
+{
+  "name": "solana-wallet-watcher",
+  "version": "1.0.0",
+  "description": "Discord bot for monitoring Solana wallet transactions",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "watch": "nodemon --exec ts-node src/index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "discord.js": "^14.21.0",
+    "@metaplex-foundation/umi": "^1.2.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
+    "@metaplex-foundation/digital-asset-standard-api": "^2.0.0",
+    "@solana/web3.js": "^1.87.6",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.11",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "solana",
+    "discord",
+    "bot",
+    "wallet",
+    "monitoring"
+  ],
+  "author": "",
+  "license": "MIT"
+}
