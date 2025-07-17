@@ -411,12 +411,33 @@ export class DiscordBot implements IDiscordBot {
     try {
       console.log('Started refreshing application (/) commands.');
 
+      // Register global commands (can take up to 1 hour to propagate)
       await rest.put(
         Routes.applicationCommands(this.client.user!.id),
         { body: commands },
       );
 
-      console.log('Successfully reloaded application (/) commands.');
+      console.log('Successfully reloaded global application (/) commands.');
+      
+      // Also register to all guilds for immediate updates during development
+      const guilds = this.client.guilds.cache;
+      if (guilds.size > 0) {
+        console.log(`Registering commands to ${guilds.size} guilds for immediate updates...`);
+        for (const [guildId, guild] of guilds) {
+          try {
+            await rest.put(
+              Routes.applicationGuildCommands(this.client.user!.id, guildId),
+              { body: commands },
+            );
+            console.log(`Commands registered to guild: ${guild.name}`);
+          } catch (guildError) {
+            console.error(`Failed to register commands to guild ${guild.name}:`, guildError);
+          }
+        }
+      }
+      
+      // Log the registered commands for debugging
+      console.log('Registered commands:', commands.map(cmd => cmd.name));
     } catch (error) {
       console.error('Error refreshing slash commands:', error);
     }
