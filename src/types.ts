@@ -155,12 +155,12 @@ export interface ExpectedPayment {
   userId: string;
   walletAddress: string;
   expectedAmount: number;
-  tokenMint?: string; // undefined for SOL payments
+  tokenMint?: string | undefined; // undefined for SOL payments
   note: string;
   dateCreated: Date;
-  dueDate?: Date;
+  dueDate?: Date | undefined;
   status: 'pending' | 'received' | 'expired';
-  tolerance?: number; // Allow +/- this amount variance
+  tolerance?: number | undefined; // Allow +/- this amount variance
 }
 
 export interface PaymentNote {

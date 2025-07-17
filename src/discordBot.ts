@@ -590,12 +590,12 @@ export class DiscordBot implements IDiscordBot {
       userId,
       walletAddress,
       expectedAmount: amount,
-      tokenMint: tokenMint || undefined,
+      tokenMint: tokenMint ?? undefined,
       note,
       dateCreated: new Date(),
-      dueDate,
+      dueDate: dueDate ?? undefined,
       status: 'pending',
-      tolerance
+      tolerance: tolerance ?? undefined
     };
 
     try {

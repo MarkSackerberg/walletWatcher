@@ -43,10 +43,12 @@ export class ExpectedPaymentStorageService implements IExpectedPaymentStorage {
       if (parsed.expectedPayments) {
         for (const [id, payment] of parsed.expectedPayments) {
           // Convert date strings back to Date objects
-          const paymentWithDates = {
+          const paymentWithDates: ExpectedPayment = {
             ...payment,
             dateCreated: new Date(payment.dateCreated),
-            dueDate: payment.dueDate ? new Date(payment.dueDate) : undefined
+            dueDate: payment.dueDate ? new Date(payment.dueDate) : undefined,
+            tokenMint: payment.tokenMint ?? undefined,
+            tolerance: payment.tolerance ?? undefined
           };
           this.expectedPayments.set(id, paymentWithDates);
         }
@@ -196,7 +198,7 @@ export class ExpectedPaymentStorageService implements IExpectedPaymentStorage {
     const now = new Date();
     let removedCount = 0;
 
-    for (const [id, payment] of this.expectedPayments.entries()) {
+    for (const [, payment] of this.expectedPayments.entries()) {
       if (payment.dueDate && payment.dueDate < now && payment.status === 'pending') {
         payment.status = 'expired';
         removedCount++;

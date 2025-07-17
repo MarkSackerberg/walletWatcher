@@ -274,7 +274,9 @@ export class WalletMonitor implements IWalletMonitor {
         message += `📏 **Variance:** ${match.variance}${tokenInfo}\n`;
       }
       
-      await this.discordBot.sendDirectMessage(match.expectedPayment.userId, message);
+      if (this.discordBot) {
+        await this.discordBot.sendDirectMessage(match.expectedPayment.userId, message);
+      }
       
       console.log(`Expected payment matched for user ${match.expectedPayment.userId}: ${match.expectedPayment.note}`);
     } catch (error) {
