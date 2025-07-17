@@ -1,4 +1,10 @@
 import 'dotenv/config';
+
+// Polyfill for ReadableStream in older Node.js versions
+if (typeof globalThis.ReadableStream === 'undefined') {
+  const { ReadableStream } = require('stream/web');
+  globalThis.ReadableStream = ReadableStream;
+}
 import SolanaClient from './solanaClient';
 import TransactionParser from './transactionParser';
 import BalanceService from './balanceService';
