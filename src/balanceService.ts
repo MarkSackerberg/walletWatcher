@@ -2,6 +2,7 @@ import {
   IBalanceService, 
   ISolanaClient, 
   IBalanceStorage, 
+  IWalletStorage,
   WalletBalances, 
   TokenBalances, 
   TokenMetadata, 
@@ -11,10 +12,12 @@ import {
 export class BalanceService implements IBalanceService {
   private solanaClient: ISolanaClient;
   private balanceStorage: IBalanceStorage;
+  private walletStorage: IWalletStorage;
 
-  constructor(solanaClient: ISolanaClient, balanceStorage: IBalanceStorage) {
+  constructor(solanaClient: ISolanaClient, balanceStorage: IBalanceStorage, walletStorage: IWalletStorage) {
     this.solanaClient = solanaClient;
     this.balanceStorage = balanceStorage;
+    this.walletStorage = walletStorage;
   }
 
   async getCurrentBalances(walletAddress: string): Promise<WalletBalances> {
@@ -121,8 +124,10 @@ export class BalanceService implements IBalanceService {
 
   async getBalanceChangeSummary(walletAddress: string, transactionSummary: TransactionSummary): Promise<string> {
     const currentBalances = await this.getCurrentBalances(walletAddress);
+    const walletName = this.walletStorage.getWalletName(walletAddress);
+    const displayName = walletName || `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`;
     
-    let summary = `**Transaction Summary for ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}**\n\n`;
+    let summary = `**Transaction Summary for ${displayName}**\n\n`;
     summary += `🔗 **Signature:** \`${transactionSummary.signature}\`\n`;
     summary += `⏰ **Time:** ${transactionSummary.timestamp.toLocaleString()}\n`;
     summary += `${transactionSummary.success ? '✅' : '❌'} **Status:** ${transactionSummary.success ? 'Success' : 'Failed'}\n`;
@@ -166,12 +171,14 @@ export class BalanceService implements IBalanceService {
   async getBalanceComparisonSummary(walletAddress: string): Promise<string | null> {
     const currentBalances = await this.getCurrentBalances(walletAddress);
     const comparison = this.balanceStorage.compareBalances(walletAddress, currentBalances);
+    const walletName = this.walletStorage.getWalletName(walletAddress);
+    const displayName = walletName || `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`;
     
     // Update stored balances for next comparison
     await this.balanceStorage.updateWalletBalances(walletAddress, currentBalances);
     
     if (comparison.isFirstCheck) {
-      return `📊 **Initial Balance Snapshot for ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}**\n\n` +
+      return `📊 **Initial Balance Snapshot for ${displayName}**\n\n` +
              `💰 **SOL:** ${this.formatBalance(currentBalances.solBalance, 9)} SOL\n` +
              this.formatTokenBalancesForSummary(currentBalances.tokenBalances) +
              (currentBalances.nftCount > 0 ? `🖼️ **NFTs:** ${currentBalances.nftCount} assets\n` : '') +
@@ -182,7 +189,7 @@ export class BalanceService implements IBalanceService {
       return null; // No significant changes to report
     }
     
-    let summary = `📈 **Balance Changes Detected for ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}**\n\n`;
+    let summary = `📈 **Balance Changes Detected for ${displayName}**\n\n`;
     
     if (comparison.solChange !== 0) {
       const solChangeStr = this.balanceStorage.formatSolChange(comparison.solChange);

@@ -14,6 +14,7 @@ export interface WalletUserMapping {
 export interface WalletMappingData {
   userWallets: [string, string[]][];
   walletUsers: [string, string][];
+  walletNames?: [string, string][];
 }
 
 export interface UserStats {
@@ -25,6 +26,7 @@ export interface UserStats {
 export interface WalletInfo {
   address: string;
   shortAddress: string;
+  name?: string;
 }
 
 // Balance and Transaction Types
@@ -255,10 +257,11 @@ export interface ISolanaClient {
 
 export interface IWalletStorage {
   initialize(): Promise<void>;
-  addWallet(userId: string, walletAddress: string): Promise<void>;
+  addWallet(userId: string, walletAddress: string, name?: string): Promise<void>;
   removeWallet(userId: string, walletAddress: string): Promise<void>;
   getUserWallets(userId: string): string[];
   getWalletOwner(walletAddress: string): string | undefined;
+  getWalletName(walletAddress: string): string | undefined;
   getAllWallets(): string[];
   getAllUsers(): string[];
   getUserWalletCount(userId: string): number;

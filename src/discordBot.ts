@@ -251,7 +251,9 @@ export class DiscordBot implements IDiscordBot {
       return false;
     }
 
-    const message = `⚠️ **Error monitoring wallet ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}**\n\n\`\`\`${error.message}\`\`\``;
+    const walletName = this.walletStorage.getWalletName(walletAddress);
+    const displayName = walletName || `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`;
+    const message = `⚠️ **Error monitoring wallet ${displayName}**\n\n\`\`\`${error.message}\`\`\``;
     return await this.sendDirectMessage(userId, message);
   }
 
@@ -299,6 +301,11 @@ export class DiscordBot implements IDiscordBot {
           option.setName('address')
             .setDescription('The Solana wallet address to monitor')
             .setRequired(true)
+        )
+        .addStringOption(option =>
+          option.setName('name')
+            .setDescription('A friendly name for this wallet (optional)')
+            .setRequired(false)
         ),
       new SlashCommandBuilder()
         .setName('remove-wallet')
@@ -461,6 +468,7 @@ export class DiscordBot implements IDiscordBot {
 
   private async handleAddWallet(interaction: ChatInputCommandInteraction): Promise<void> {
     const walletAddress = interaction.options.getString('address', true);
+    const walletName = interaction.options.getString('name');
     const userId = interaction.user.id;
 
     if (!this.walletStorage.isValidSolanaAddress(walletAddress)) {
@@ -479,10 +487,11 @@ export class DiscordBot implements IDiscordBot {
     }
 
     try {
-      await this.walletStorage.addWallet(userId, walletAddress);
+      await this.walletStorage.addWallet(userId, walletAddress, walletName || undefined);
       await this.walletMonitor.addWallet(walletAddress);
       
-      await interaction.reply(`✅ Successfully added wallet \`${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}\` to your monitoring list!`);
+      const displayName = walletName || `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`;
+      await interaction.reply(`✅ Successfully added wallet **${displayName}** to your monitoring list!`);
     } catch (error) {
       console.error('Error adding wallet:', error);
       await interaction.reply('❌ Failed to add wallet. Please try again.');
@@ -505,10 +514,12 @@ export class DiscordBot implements IDiscordBot {
     }
 
     try {
+      const walletName = this.walletStorage.getWalletName(walletAddress);
       await this.walletStorage.removeWallet(userId, walletAddress);
       await this.walletMonitor.removeWallet(walletAddress);
       
-      await interaction.reply(`✅ Successfully removed wallet \`${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}\` from your monitoring list!`);
+      const displayName = walletName || `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`;
+      await interaction.reply(`✅ Successfully removed wallet **${displayName}** from your monitoring list!`);
     } catch (error) {
       console.error('Error removing wallet:', error);
       await interaction.reply('❌ Failed to remove wallet. Please try again.');
@@ -524,9 +535,11 @@ export class DiscordBot implements IDiscordBot {
       return;
     }
 
-    const walletList = userWallets.map((wallet, index) => 
-      `${index + 1}. \`${wallet.slice(0, 8)}...${wallet.slice(-8)}\``
-    ).join('\n');
+    const walletList = userWallets.map((wallet, index) => {
+      const name = this.walletStorage.getWalletName(wallet);
+      const display = name || `${wallet.slice(0, 8)}...${wallet.slice(-8)}`;
+      return `${index + 1}. **${display}**${name ? ` (\`${wallet.slice(0, 8)}...${wallet.slice(-8)}\`)` : ''}`;
+    }).join('\n');
 
     const message = `🔍 **Your Monitored Wallets** (${userWallets.length}):\n\n${walletList}`;
     await interaction.reply(message);
@@ -545,9 +558,10 @@ export class DiscordBot implements IDiscordBot {
       `🔢 **Total Wallets:** ${stats.walletCount}\n` +
       `🆔 **Your Discord ID:** ${userId}\n\n` +
       `📝 **Wallet Details:**\n` +
-      stats.wallets.map((wallet, index) => 
-        `${index + 1}. ${wallet.shortAddress}`
-      ).join('\n');
+      stats.wallets.map((wallet, index) => {
+        const display = wallet.name || wallet.shortAddress;
+        return `${index + 1}. **${display}**${wallet.name ? ` (${wallet.shortAddress})` : ''}`;
+      }).join('\n');
 
     await interaction.reply(message);
   }
@@ -601,7 +615,9 @@ export class DiscordBot implements IDiscordBot {
     try {
       await this.expectedPaymentStorage.addExpectedPayment(expectedPayment);
       const tokenInfo = tokenMint ? ` (${tokenMint.slice(0, 8)}...)` : ' SOL';
-      await interaction.reply(`✅ Expected payment added!\n\n**ID:** ${expectedPayment.id}\n**Amount:** ${amount}${tokenInfo}\n**Note:** ${note}\n**Wallet:** \`${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}\`${tolerance > 0 ? `\n**Tolerance:** ±${tolerance}` : ''}${dueDate ? `\n**Due:** ${dueDate.toDateString()}` : ''}`);
+      const walletName = this.walletStorage.getWalletName(walletAddress);
+      const displayWallet = walletName || `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}`;
+      await interaction.reply(`✅ Expected payment added!\n\n**ID:** ${expectedPayment.id}\n**Amount:** ${amount}${tokenInfo}\n**Note:** ${note}\n**Wallet:** **${displayWallet}**${tolerance > 0 ? `\n**Tolerance:** ±${tolerance}` : ''}${dueDate ? `\n**Due:** ${dueDate.toDateString()}` : ''}`);
     } catch (error) {
       console.error('Error adding expected payment:', error);
       await interaction.reply('❌ Failed to add expected payment. Please try again.');

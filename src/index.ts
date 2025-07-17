@@ -65,7 +65,7 @@ class WalletWatcherBot {
     this.transactionParser = new TransactionParser(this.solanaClient);
     
     // Initialize balance service
-    this.balanceService = new BalanceService(this.solanaClient, this.balanceStorage);
+    this.balanceService = new BalanceService(this.solanaClient, this.balanceStorage, this.walletStorage);
     
     // Initialize wallet monitor
     this.walletMonitor = new WalletMonitor(

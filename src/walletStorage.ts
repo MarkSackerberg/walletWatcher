@@ -11,11 +11,13 @@ export class WalletStorage implements IWalletStorage {
   private filePath: string;
   private userWallets: Map<string, Set<string>>;
   private walletUsers: Map<string, string>;
+  private walletNames: Map<string, string>;
 
   constructor(filePath: string = 'walletMappings.json') {
     this.filePath = path.resolve(filePath);
     this.userWallets = new Map();
     this.walletUsers = new Map();
+    this.walletNames = new Map();
   }
 
   async initialize(): Promise<void> {
@@ -25,6 +27,7 @@ export class WalletStorage implements IWalletStorage {
       console.log('No existing wallet mappings found, starting with empty storage');
       this.userWallets = new Map();
       this.walletUsers = new Map();
+      this.walletNames = new Map();
     }
   }
 
@@ -51,6 +54,7 @@ export class WalletStorage implements IWalletStorage {
       }
       
       this.walletUsers = new Map(parsed.walletUsers || []);
+      this.walletNames = new Map(parsed.walletNames || []);
       
       // Rebuild userWallets from walletUsers if userWallets is empty or corrupted
       if (this.userWallets.size === 0 && this.walletUsers.size > 0) {
@@ -78,7 +82,8 @@ export class WalletStorage implements IWalletStorage {
     try {
       const data: WalletMappingData = {
         userWallets: Array.from(this.userWallets.entries()).map(([userId, wallets]) => [userId, Array.from(wallets)]),
-        walletUsers: Array.from(this.walletUsers.entries())
+        walletUsers: Array.from(this.walletUsers.entries()),
+        walletNames: Array.from(this.walletNames.entries())
       };
       
       await fs.writeFile(this.filePath, JSON.stringify(data, null, 2));
@@ -88,7 +93,7 @@ export class WalletStorage implements IWalletStorage {
     }
   }
 
-  async addWallet(userId: string, walletAddress: string): Promise<void> {
+  async addWallet(userId: string, walletAddress: string, name?: string): Promise<void> {
     if (!this.userWallets.has(userId)) {
       this.userWallets.set(userId, new Set());
     }
@@ -96,8 +101,12 @@ export class WalletStorage implements IWalletStorage {
     this.userWallets.get(userId)!.add(walletAddress);
     this.walletUsers.set(walletAddress, userId);
     
+    if (name) {
+      this.walletNames.set(walletAddress, name);
+    }
+    
     await this.saveToFile();
-    console.log(`Added wallet ${walletAddress} for user ${userId}`);
+    console.log(`Added wallet ${walletAddress}${name ? ` (${name})` : ''} for user ${userId}`);
   }
 
   async removeWallet(userId: string, walletAddress: string): Promise<void> {
@@ -110,6 +119,7 @@ export class WalletStorage implements IWalletStorage {
     }
     
     this.walletUsers.delete(walletAddress);
+    this.walletNames.delete(walletAddress);
     
     await this.saveToFile();
     console.log(`Removed wallet ${walletAddress} for user ${userId}`);
@@ -121,6 +131,10 @@ export class WalletStorage implements IWalletStorage {
 
   getWalletOwner(walletAddress: string): string | undefined {
     return this.walletUsers.get(walletAddress);
+  }
+
+  getWalletName(walletAddress: string): string | undefined {
+    return this.walletNames.get(walletAddress);
   }
 
   getAllWallets(): string[] {
@@ -157,10 +171,14 @@ export class WalletStorage implements IWalletStorage {
     return {
       userId,
       walletCount: wallets.length,
-      wallets: wallets.map(wallet => ({
-        address: wallet,
-        shortAddress: `${wallet.slice(0, 8)}...${wallet.slice(-8)}`
-      }))
+      wallets: wallets.map(wallet => {
+        const name = this.getWalletName(wallet);
+        return {
+          address: wallet,
+          shortAddress: `${wallet.slice(0, 8)}...${wallet.slice(-8)}`,
+          ...(name && { name })
+        };
+      })
     };
   }
 }
